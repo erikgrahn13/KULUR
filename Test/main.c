@@ -75,6 +75,7 @@ void RTC_TimeConfig(uint16_t[], uint16_t[]);
 void RTC_TimeShow(void);
 void UARTfunction(uint8_t[]);
 void frame_decoder(uint32_t radio_frame[]);
+void MX_CRC_Init(void);
 ITStatus UartReady;
 
 //void MX_FREERTOS_Init(void);
@@ -134,6 +135,7 @@ int main(void)
   MX_USART3_UART_Init();
   MX_RTC_Init();
   MX_TIM1_Init();
+  MX_CRC_Init();
 
   /* USER CODE BEGIN 2 */
   //RTC_TimeConfig();
@@ -180,17 +182,22 @@ int main(void)
  
   
   /* Infinite loop */
- /*   for(int i = 0; i <9; i++)
-{
-  BSP_LED_Toggle(LD4_Pin);
-  HAL_Delay(7);
-  HAL_Delay(1000);
-  if(i <4)
-  {
-    BSP_LED_Toggle(LD4_Pin);
-    HAL_Delay(8);
-    HAL_Delay(1000);
-  }*/
+
+  // Test preamble duty 7500 us to 8500 us
+    for(int i=0;i<5;i++)
+    {
+      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+      HAL_Delay(7);
+      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+      HAL_Delay(1000);
+      if(i<4)
+      {
+        HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+        HAL_Delay(8);
+        HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+        HAL_Delay(1000);
+      }
+    }
 
 
   /* USER CODE BEGIN WHILE */
@@ -202,15 +209,14 @@ int main(void)
     //HAL_Delay(1000);
   /* USER CODE BEGIN 3 */
  
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_SET);
-    HAL_Delay(7);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_RESET);
-    HAL_Delay(7);
-    
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_SET);
-    HAL_Delay(8);
-    HAL_GPIO_WritePin(GPIOE, GPIO_PIN_8, GPIO_PIN_RESET);
-    HAL_Delay(8);
+      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+      HAL_Delay(8);
+      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+      HAL_Delay(1000);
+      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+      HAL_Delay(12);
+      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+      HAL_Delay(1000);
      
       
      //RTC_TimeShow();
