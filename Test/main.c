@@ -135,13 +135,13 @@ int main(void)
   MX_USART3_UART_Init();
   MX_RTC_Init();
   //MX_TIM1_Init();
-  MX_CRC_Init();
+  //MX_CRC_Init();
 
   /* USER CODE BEGIN 2 */
   
   /* USER CODE END 2 */
 
-/* UartReady = RESET;
+ UartReady = RESET;
    static uint8_t Buffer[] = "Welcome to KULUR, please set date (YYYY-MM-DD) and time (HH:MM)\r\n";
   uint8_t DateString[] = "Date: ";
 
@@ -160,7 +160,7 @@ int main(void)
     {
       Error_Handler();
     } 
-*/
+
 
   /* Call init function for freertos objects (in freertos.c) */
   //MX_FREERTOS_Init();
@@ -170,9 +170,7 @@ int main(void)
   
   /* We should never get here as control is now taken by the scheduler */
 
- //UARTfunction(Buffer);
- 
-  // RTC_TimeConfig();
+ UARTfunction(Buffer);
   /* Infinite loop */
 
   // Test preamble duty 7500 us to 8500 us
@@ -211,7 +209,7 @@ int main(void)
       HAL_Delay(50);
      */
       
-    displayFunction(215, false);
+    displayFunction(523, true);
       
    
         
@@ -479,8 +477,6 @@ void UARTfunction(uint8_t Buffer[])
      }
      
      Date[0] = Date[0] % 100;
-    //RTC_TimeConfig(Date);
-   // RTC_TimeShow();
            
      dateCheck = true;
     
@@ -535,7 +531,7 @@ void UARTfunction(uint8_t Buffer[])
      while( token != NULL ) 
      {
         time[i] = atoi(token);
-        printf("%d\n", time[i]);
+        //printf("%d\n", time[i]);
         token = strtok(NULL, s);
         
         i=i+1;
@@ -552,11 +548,11 @@ void UARTfunction(uint8_t Buffer[])
 
 void displayFunction(int temp, bool new_temp)
 {
-  uint16_t hours = 14 ;
-  uint16_t minutes = 10;
+  uint16_t hours;
+  uint16_t minutes;
   static uint8_t number[8];
   
- // RTC_TimeShow(&hours, &minutes);
+  RTC_TimeShow(&hours, &minutes);
  
   if(new_temp)
   {
@@ -572,17 +568,20 @@ void displayFunction(int temp, bool new_temp)
     number[6] = (temp % 100) / 10;
     number[7] = (temp % 100) % 10;   
   }
+  
     number[0] = hours / 10;
     number[1] = hours % 10;
     number[2] = minutes / 10;
     number[3] = minutes % 10;
-  
+
   
   
   
   int i = 0;
   while(i < 8)
   {
+
+    
     HAL_Delay(1);
     switch(i) // selectar vilken 7-seg som ska lysa
     {
@@ -709,6 +708,8 @@ void displayFunction(int temp, bool new_temp)
         //printf("DIG4term: ");
         break;
     default:
+      
+      
       break;
     }
         
@@ -840,13 +841,13 @@ void displayFunction(int temp, bool new_temp)
             break;
             
         default:
-            HAL_GPIO_WritePin(GPIOD, A_led_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOD, B_led_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOD, C_led_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOD, D_led_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
+            HAL_GPIO_WritePin(GPIOD, A_led_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOD, B_led_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOD, C_led_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOD, D_led_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_SET);
             //printf("\n");
           break;
         }
@@ -858,7 +859,7 @@ void displayFunction(int temp, bool new_temp)
 
 void RTC_TimeConfig(uint16_t Date[], uint16_t time[])
 {
-  printf("minutes1 = %d\n", time[1]); 
+  //printf("minutes1 = %d\n", time[1]); 
   RTC_TimeTypeDef stimestructure;
   RTC_DateTypeDef sdatestructure;
   
@@ -868,7 +869,7 @@ void RTC_TimeConfig(uint16_t Date[], uint16_t time[])
   sdatestructure.WeekDay = RTC_WEEKDAY_TUESDAY;
   
   stimestructure.Hours = time[0];
-  printf("minutes2 = %d\n", time[1]); 
+  //printf("minutes2 = %d\n", time[1]); 
   stimestructure.Minutes = time[1];
   stimestructure.Seconds = 0x00;
   
@@ -887,7 +888,7 @@ void RTC_TimeShow(uint16_t *hours, uint16_t *minutes)
   *hours = stimestructureget.Hours;
   *minutes = stimestructureget.Minutes;
   //displayFunction(stimestructureget.Seconds);
-  printf("Time = %d:%d:%d\n", stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
+  //printf("Time = %d:%d:%d\n", stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
   //printf("Date = %d-%d-%d\n", sdatestructureget.Year, sdatestructureget.Month, sdatestructureget.Date);
          
 }

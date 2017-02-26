@@ -204,6 +204,7 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
     // Unlock and Return 
     HAL_TIM_IC_Start_IC(&htim1, TIM_CHANNEL_2);
     return;
+}
 }*/
 
 /* USER CODE BEGIN 1 */
