@@ -88,7 +88,7 @@ ITStatus UartReady;
 /* USER CODE BEGIN 0 */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-  /* Set transmission flag: transfer complete */
+   //Set transmission flag: transfer complete 
   UartReady = SET;
 }
 
@@ -100,13 +100,13 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
 */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 {
-  /* Set transmission flag: transfer complete */
+  // Set transmission flag: transfer complete 
   UartReady = SET;
 }
 /* USER CODE END 0 */
 
 #define BUFFERSIZE 6
-#define WELCOMEBUFFER 70
+#define WELCOMEBUFFER 66
 #define DATEBUFFER 10
 #define TIMEBUFFER 5
 #define FRAME_SIZE 40
@@ -134,15 +134,15 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   MX_RTC_Init();
-  MX_TIM1_Init();
+  //MX_TIM1_Init();
   MX_CRC_Init();
 
   /* USER CODE BEGIN 2 */
   
   /* USER CODE END 2 */
 
- UartReady = RESET;
-  uint8_t Buffer[] = "Welcome to KULUR, please set date (YYYY-MM-DD) and time (HH:MM)\r\n";
+/* UartReady = RESET;
+   static uint8_t Buffer[] = "Welcome to KULUR, please set date (YYYY-MM-DD) and time (HH:MM)\r\n";
   uint8_t DateString[] = "Date: ";
 
   
@@ -160,7 +160,7 @@ int main(void)
     {
       Error_Handler();
     } 
-
+*/
 
   /* Call init function for freertos objects (in freertos.c) */
   //MX_FREERTOS_Init();
@@ -170,13 +170,13 @@ int main(void)
   
   /* We should never get here as control is now taken by the scheduler */
 
- UARTfunction(Buffer);
+ //UARTfunction(Buffer);
  
   // RTC_TimeConfig();
   /* Infinite loop */
 
   // Test preamble duty 7500 us to 8500 us
-    for(int i=0;i<5;i++)
+  /*  for(int i=0;i<5;i++)
     {
       HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
       HAL_Delay(7);
@@ -191,7 +191,7 @@ int main(void)
       }
     }
 
-
+*/
   /* USER CODE BEGIN WHILE */
   while (1)
   {
@@ -201,7 +201,7 @@ int main(void)
     //HAL_Delay(1000);
   /* USER CODE BEGIN 3 */
  
-      HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
+     /* HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
       HAL_Delay(8);
       HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
       HAL_Delay(50);
@@ -209,7 +209,7 @@ int main(void)
       HAL_Delay(12);
       HAL_GPIO_TogglePin(GPIOE,LD8_Pin);
       HAL_Delay(50);
-     
+     */
       
     displayFunction(215, false);
       
@@ -421,9 +421,13 @@ void frame_decoder(uint32_t radio_frame[])
 
 void UARTfunction(uint8_t Buffer[])
 {
+  
+  
+
   static bool dateCheck = false;
   static bool timeCheck = false;
   uint8_t TimeString[] = "\r\nTime: ";
+  //static uint8_t testBuff[DATEBUFFER];
 
   static uint16_t Date[3] = {0};
   static uint16_t time[2] = {0};
@@ -431,6 +435,7 @@ void UARTfunction(uint8_t Buffer[])
   if(!dateCheck)
   {
    
+
     
     if(HAL_UART_Receive_IT(&huart3, (uint8_t *)Buffer, DATEBUFFER) != HAL_OK)  
       {
@@ -444,8 +449,8 @@ void UARTfunction(uint8_t Buffer[])
 
       
       UartReady = RESET;
-      
-         if(HAL_UART_Transmit_IT(&huart3, (uint8_t *)Buffer, DATEBUFFER) != HAL_OK)
+    
+              if(HAL_UART_Transmit_IT(&huart3, (uint8_t *)Buffer, DATEBUFFER) != HAL_OK)
       {
         Error_Handler();
       } 
@@ -454,6 +459,8 @@ void UARTfunction(uint8_t Buffer[])
         
       }
       UartReady = RESET;
+      
+
       
       const char s[2] = "-";
      char *token;
@@ -545,11 +552,11 @@ void UARTfunction(uint8_t Buffer[])
 
 void displayFunction(int temp, bool new_temp)
 {
-  uint16_t hours;
-  uint16_t minutes;
+  uint16_t hours = 14 ;
+  uint16_t minutes = 10;
   static uint8_t number[8];
   
-  RTC_TimeShow(&hours, &minutes);
+ // RTC_TimeShow(&hours, &minutes);
  
   if(new_temp)
   {
@@ -576,7 +583,7 @@ void displayFunction(int temp, bool new_temp)
   int i = 0;
   while(i < 8)
   {
-    
+    HAL_Delay(1);
     switch(i) // selectar vilken 7-seg som ska lysa
     {
       //----------------Select clock display-----------------------------------
@@ -586,7 +593,14 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
-        printf("DIG1clk: ");
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
+        
+        //printf("DIG1clk: ");
         break;
         
       case 1: // enablar clk DIG2clk
@@ -595,7 +609,13 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
-        printf("DIG2clk: ");
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
+        //printf("DIG2clk: ");
         break;
         
       case 2: // enablar clk DIG3clk
@@ -604,7 +624,13 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
-        printf("DIG3clk: ");
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
+        //printf("DIG3clk: ");
         break;
         
       case 3: // enablar clk DIG4clk
@@ -613,7 +639,13 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
-        printf("DIG4clk: ");
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
+        //printf("DIG4clk: ");
         break;
         
         //--------------select temperature display--------------------------------
@@ -623,7 +655,13 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
-        printf("DIG1term: ");
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //printf("DIG1term: ");
         break;
         
       case 5: // enablar term DIG2term och skriver ut "punkten" för decimaltal
@@ -631,8 +669,14 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_RESET);
-        printf("DIG2term: ");
+        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //printf("DIG2term: ");
         break;
         
       case 6: // enablar term DIG3term
@@ -640,8 +684,14 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
-        printf("DIG3term: ");
+        HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_RESET);
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //printf("DIG3term: ");
         break;
         
       case 7: // enablar term DIG4term
@@ -650,7 +700,13 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG3term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4term_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_SET);
-        printf("DIG4term: ");
+        
+        HAL_GPIO_WritePin(GPIOC, DIG1clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //printf("DIG4term: ");
         break;
     default:
       break;
@@ -668,8 +724,8 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 0\n");
+            //HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_RESET);
+            //printf("Number = 0\n");
             break;
             
           case 1:
@@ -680,8 +736,8 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 1\n");
+            //HAL_GPIO_WritePin(GPIOD, DP_led_Pin, GPIO_PIN_RESET);
+            //printf("Number = 1\n");
             break;
             
           case 2:
@@ -692,7 +748,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 2\n");
+            //printf("Number = 2\n");
             break;
             
           case 3:
@@ -703,7 +759,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 3\n");
+            //printf("Number = 3\n");
             break;
             
           case 4:
@@ -714,7 +770,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 4\n");
+            //printf("Number = 4\n");
             break;
             
           case 5:
@@ -725,7 +781,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 5\n");
+            //printf("Number = 5\n");
             break;
             
           case 6:
@@ -736,7 +792,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 6\n");
+            //printf("Number = 6\n");
             break;
             
           case 7:
@@ -747,7 +803,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_SET);
-            printf("Number = 7\n");
+            //printf("Number = 7\n");
             break;
             
           case 8:
@@ -758,7 +814,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 8\n");
+            //printf("Number = 8\n");
             break;
             
           case 9:
@@ -769,7 +825,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = 9\n");
+            //printf("Number = 9\n");
             break;
             
         case 10:
@@ -780,7 +836,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_SET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("Number = -\n");
+            //printf("Number = -\n");
             break;
             
         default:
@@ -791,7 +847,7 @@ void displayFunction(int temp, bool new_temp)
             HAL_GPIO_WritePin(GPIOD, E_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, F_led_Pin, GPIO_PIN_RESET);
             HAL_GPIO_WritePin(GPIOD, G_led_Pin, GPIO_PIN_RESET);
-            printf("\n");
+            //printf("\n");
           break;
         }
       i++;
