@@ -72,9 +72,9 @@ void SystemClock_Config(void);
 void Error_Handler(void);
 void displayFunction(int, bool);
 void RTC_TimeConfig(uint16_t[], uint16_t[]);
-void RTC_TimeShow(uint16_t*, uint16_t*);
+void RTC_TimeShow(uint16_t*, uint16_t*, uint16_t*);
 void UARTfunction(uint8_t[]);
-void frame_decoder(uint32_t radio_frame[]);
+void frame_decoder(uint32_t radio_frame[], uint8_t);
 void MX_CRC_Init(void);
 ITStatus UartReady;
 
@@ -134,8 +134,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART3_UART_Init();
   MX_RTC_Init();
-  //MX_TIM1_Init();
-  //MX_CRC_Init();
+
 
   /* USER CODE BEGIN 2 */
   
@@ -171,6 +170,8 @@ int main(void)
   /* We should never get here as control is now taken by the scheduler */
 
  UARTfunction(Buffer);
+  MX_TIM1_Init();
+  MX_CRC_Init();
   /* Infinite loop */
 
   // Test preamble duty 7500 us to 8500 us
@@ -209,7 +210,7 @@ int main(void)
       HAL_Delay(50);
      */
       
-    displayFunction(523, true);
+    displayFunction(0, false);
       
    
         
@@ -227,11 +228,13 @@ int main(void)
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
   static uint32_t duty_in_microseconds=0;
-  static uint32_t radio_frame[FRAME_SIZE];
-  static uint32_t preamble_bits[9];
+  static uint32_t radio_frame[200];
+  static uint32_t preamble_bits[4];
   static uint8_t bit_counter=0;
   static uint8_t interrupt_counter=0;
   static bool preamble_flag=false;
+  bool ID_flag = false;
+  uint8_t startFrame = 0;
   
   
   //Lock function
@@ -247,7 +250,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
  
     if(duty_in_microseconds>MINIMUM_DUTY_TICKS && !preamble_flag)
     {
-       if(duty_in_microseconds >= 6000 && duty_in_microseconds <9000)
+       if(duty_in_microseconds >= 400 && duty_in_microseconds <800)
        {
          preamble_bits[bit_counter]=duty_in_microseconds;
          bit_counter++;
@@ -255,7 +258,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
        else
          bit_counter=0;
        
-       if(bit_counter==9)
+       if(bit_counter==4)
        {
          preamble_flag=true;
        }
@@ -267,25 +270,51 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
     {
       
     
-      if(bit_counter >9 && bit_counter <=49)
+      if(bit_counter >3 && bit_counter <100)
       {
-        radio_frame[bit_counter-10]=duty_in_microseconds;
-        bit_counter++;
-        interrupt_counter++;
-        printf("INNE FOR %d \n",interrupt_counter); 
+         if((duty_in_microseconds >= 400 && duty_in_microseconds <800) || (duty_in_microseconds > 1300 && duty_in_microseconds < 1700))
+         {
+        
+            radio_frame[bit_counter-4]=duty_in_microseconds;
+            bit_counter++;
+            interrupt_counter++;
+         }
+        
+ 
+        
+        //printf("INNE FOR %d \n",interrupt_counter); 
         
       }
-      else if(bit_counter > 49)
+      else if(bit_counter == 100)
       {
-        frame_decoder(radio_frame);
-        bit_counter=0;
+        for(int i = 0; i < 92; i++)
+        {
+          
+          if((radio_frame[i]>1300 && radio_frame[i]<1700) && (radio_frame[i+1]>400 && radio_frame[i+1]<800) && (radio_frame[i+2]>1300 && radio_frame[i+2]<1700) && (radio_frame[i+3]>1300 && radio_frame[i+3]<1700) && (radio_frame[i+4]>400 && radio_frame[i+4]<800) && (radio_frame[i+5]>1300 && radio_frame[i+5]<1700) && (radio_frame[i+6]>1300 && radio_frame[i+6]<1700) && (radio_frame[i+7]>1300 && radio_frame[i+7]<1700))
+          { 
+            ID_flag = true;
+            startFrame = i;
+          }
+          
+            
+        }
+         
+        if(ID_flag)
+        {
+          frame_decoder(radio_frame, startFrame);
+          //bit_counter=0;
+         
+        }
+        bit_counter = 0;
         preamble_flag=false;
+        ID_flag = false;
       }
       else 
         bit_counter++;
       
     }
     
+  
       
     
     
@@ -295,32 +324,81 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
   //Unlock function
    HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_2);
 
-  return;
+  //return;
 }
   
-void frame_decoder(uint32_t radio_frame[])
+void frame_decoder(uint32_t radio_frame[], uint8_t startFrame)
 {
-  static uint32_t decoded_frame[FRAME_SIZE];
-  static uint16_t temp=0; 
+ 
+  static uint32_t decoded_frame[40];
+  uint16_t temp=0; 
   
   
   
-  printf("It's inside!!!!! ?? 8===(-)\n");
-  for(int i=0;i<FRAME_SIZE;i++)
+  //printf("It's inside!!!!! ?? 8===(-)\n");
+  for(int i=0;i<39;i++)
   {
-    if(radio_frame[i]>=7500 && radio_frame[i] <=8500)
+    if(radio_frame[i+startFrame]>=400 && radio_frame[i+startFrame] <=800)
     {
       decoded_frame[i]=1;
     }
-    else if(radio_frame[i]>=11500 && radio_frame[i] <=12500)
+    else if(radio_frame[i+startFrame]>=1300 && radio_frame[i+startFrame] <=1700)
     {
       decoded_frame[i]=0;
     }
-    printf("Index%d = %d \n ",i,decoded_frame[i]);
+   printf("Index%d = %d \n ",i,decoded_frame[i]);
   }
   
+  
+    /* if(decoded_frame[14])
+  {
+    temp+=512;
+  }
+  if(decoded_frame[15])
+  {
+    temp+=256;
+  }*/
+  if(decoded_frame[16])
+  {
+    temp+=128;
+  }
+  if(decoded_frame[17])
+  {
+    temp+=64;
+  }
+  if(decoded_frame[18])
+  {
+    temp+=32;
+  }
+  if(decoded_frame[19])
+  {
+    temp+=16;
+  }
+  if(decoded_frame[20])
+  {
+    temp+=8;
+  }
+  if(decoded_frame[21])
+  {
+    temp+=4;
+  }
+  if(decoded_frame[22])
+  {
+    temp+=2;
+  }
+  if(decoded_frame[23])
+  {
+    temp+=1;
+  }
+  static int hej;
+  hej = temp;
+  printf("Temp: %d \n " ,temp);
+  if(HAL_CRC_Calculate(&hcrc,decoded_frame, 40) == 0)
+    displayFunction(temp, true);
+    
+  
   // CRC FUCK
-  decoded_frame[39]=1;
+  /*decoded_frame[39]=1;
   decoded_frame[38]=0;
   decoded_frame[37]=1;
   decoded_frame[36]=1;
@@ -363,58 +441,15 @@ void frame_decoder(uint32_t radio_frame[])
   decoded_frame[3]=0;
   decoded_frame[2]=0;
   decoded_frame[1]=1;
-  decoded_frame[0]=0;
-  printf("CRC: %d \n" ,HAL_CRC_Calculate(&hcrc,decoded_frame, FRAME_SIZE));
+  decoded_frame[0]=0;*/
+  //printf("CRC: %d \n" ,HAL_CRC_Calculate(&hcrc,decoded_frame, FRAME_SIZE));
 
   
   
   
-  if(decoded_frame[14])
-  {
-    temp+=512;
-  }
-  if(decoded_frame[15])
-  {
-    temp+=256;
-  }
-  if(decoded_frame[16])
-  {
-    temp+=128;
-  }
-  if(decoded_frame[17])
-  {
-    temp+=64;
-  }
-  if(decoded_frame[18])
-  {
-    temp+=32;
-  }
-  if(decoded_frame[19])
-  {
-    temp+=16;
-  }
-  if(decoded_frame[20])
-  {
-    temp+=8;
-  }
-  if(decoded_frame[21])
-  {
-    temp+=4;
-  }
-  if(decoded_frame[22])
-  {
-    temp+=2;
-  }
-  if(decoded_frame[23])
-  {
-    temp+=1;
-  }
+ 
   
-  
-  printf("Temp: %d \n " ,temp);
-  displayFunction(temp, true);
-  
-  return; 
+  //return; 
 }
 
 void UARTfunction(uint8_t Buffer[])
@@ -550,10 +585,15 @@ void displayFunction(int temp, bool new_temp)
 {
   uint16_t hours;
   uint16_t minutes;
+  uint16_t seconds;
   static uint8_t number[8];
+  uint32_t tempsek = seconds;
+
   
-  RTC_TimeShow(&hours, &minutes);
+  
+  RTC_TimeShow(&hours, &minutes, &seconds);
  
+  
   if(new_temp)
   {
     if(temp > 512)
@@ -573,16 +613,32 @@ void displayFunction(int temp, bool new_temp)
     number[1] = hours % 10;
     number[2] = minutes / 10;
     number[3] = minutes % 10;
+    
+    //float temp2sek = seconds;
+    //temp2sek = temp2sek-0.5;
+    
 
-  
-  
+
+   
+    
   
   int i = 0;
   while(i < 8)
   {
 
+    for(int i = 0; i < 9000; i++)
+    {
+    }
     
-    HAL_Delay(1);
+    uint32_t current_second = HAL_GetTick();
+    static uint32_t last_second;
+    if((current_second - last_second)> 500)
+    {
+      last_second = current_second;
+      HAL_GPIO_TogglePin(GPIOC, Kolon_Pin);
+    }
+
+    //HAL_Delay(1);
     switch(i) // selectar vilken 7-seg som ska lysa
     {
       //----------------Select clock display-----------------------------------
@@ -591,7 +647,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
+       
         
         HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
@@ -607,7 +663,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
+        
         
         HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
@@ -622,7 +678,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_SET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
+        //HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
         
         HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
@@ -637,7 +693,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
+        //HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_SET);
         
         HAL_GPIO_WritePin(GPIOC, DIG1term_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG2term_Pin, GPIO_PIN_RESET);
@@ -659,7 +715,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
         //printf("DIG1term: ");
         break;
         
@@ -674,7 +730,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
         //printf("DIG2term: ");
         break;
         
@@ -689,7 +745,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
         //printf("DIG3term: ");
         break;
         
@@ -704,7 +760,7 @@ void displayFunction(int temp, bool new_temp)
         HAL_GPIO_WritePin(GPIOC, DIG2clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG3clk_Pin, GPIO_PIN_RESET);
         HAL_GPIO_WritePin(GPIOC, DIG4clk_Pin, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
+        //HAL_GPIO_WritePin(GPIOC, Kolon_Pin, GPIO_PIN_RESET);
         //printf("DIG4term: ");
         break;
     default:
@@ -878,7 +934,7 @@ void RTC_TimeConfig(uint16_t Date[], uint16_t time[])
   HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x32F2);
 }
   
-void RTC_TimeShow(uint16_t *hours, uint16_t *minutes)
+void RTC_TimeShow(uint16_t *hours, uint16_t *minutes, uint16_t *seconds)
 {
   RTC_TimeTypeDef stimestructureget;
   RTC_DateTypeDef sdatestructureget;
@@ -887,6 +943,7 @@ void RTC_TimeShow(uint16_t *hours, uint16_t *minutes)
   
   *hours = stimestructureget.Hours;
   *minutes = stimestructureget.Minutes;
+  *seconds = stimestructureget.Seconds;
   //displayFunction(stimestructureget.Seconds);
   //printf("Time = %d:%d:%d\n", stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
   //printf("Date = %d-%d-%d\n", sdatestructureget.Year, sdatestructureget.Month, sdatestructureget.Date);
