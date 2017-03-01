@@ -140,7 +140,7 @@ int main(void)
   
   /* USER CODE END 2 */
 
- UartReady = RESET;
+ /*UartReady = RESET;
    static uint8_t Buffer[] = "Welcome to KULUR, please set date (YYYY-MM-DD) and time (HH:MM)\r\n";
   uint8_t DateString[] = "Date: ";
 
@@ -158,7 +158,7 @@ int main(void)
     if(HAL_UART_Transmit(&huart3, (uint8_t *)DateString, BUFFERSIZE,5000) != HAL_OK)
     {
       Error_Handler();
-    } 
+    } **/
 
 
   /* Call init function for freertos objects (in freertos.c) */
@@ -169,7 +169,7 @@ int main(void)
   
   /* We should never get here as control is now taken by the scheduler */
 
- UARTfunction(Buffer);
+ //UARTfunction(Buffer);
   MX_TIM1_Init();
   MX_CRC_Init();
   /* Infinite loop */
@@ -238,6 +238,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
   
   
   //Lock function
+  HAL_TIM_IC_Stop_IT(&htim1, TIM_CHANNEL_1);
   HAL_TIM_IC_Stop_IT(&htim1, TIM_CHANNEL_2);
   
  if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
@@ -248,9 +249,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
   
   //Checks for preamble bits and sets a flag when 9 "1" in a row
  
-    if(duty_in_microseconds>MINIMUM_DUTY_TICKS && !preamble_flag)
+    if(duty_in_microseconds>400 && !preamble_flag)
     {
-       if(duty_in_microseconds >= 400 && duty_in_microseconds <800)
+       if(duty_in_microseconds >= 400 && duty_in_microseconds <1300)
        {
          preamble_bits[bit_counter]=duty_in_microseconds;
          bit_counter++;
@@ -270,14 +271,14 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
     {
       
     
-      if(bit_counter >3 && bit_counter <100)
+      if(bit_counter >3 && bit_counter <200)
       {
-         if((duty_in_microseconds >= 400 && duty_in_microseconds <800) || (duty_in_microseconds > 1300 && duty_in_microseconds < 1700))
+         if((duty_in_microseconds >= 400 && duty_in_microseconds <1300) || (duty_in_microseconds > 1300 && duty_in_microseconds < 1700))
          {
         
             radio_frame[bit_counter-4]=duty_in_microseconds;
             bit_counter++;
-            interrupt_counter++;
+            //interrupt_counter++;
          }
         
  
@@ -285,15 +286,19 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
         //printf("INNE FOR %d \n",interrupt_counter); 
         
       }
-      else if(bit_counter == 100)
+      else if(bit_counter == 200)
       {
-        for(int i = 0; i < 92; i++)
+        for(int i = 0; i < 193; i++)
         {
           
-          if((radio_frame[i]>1300 && radio_frame[i]<1700) && (radio_frame[i+1]>400 && radio_frame[i+1]<800) && (radio_frame[i+2]>1300 && radio_frame[i+2]<1700) && (radio_frame[i+3]>1300 && radio_frame[i+3]<1700) && (radio_frame[i+4]>400 && radio_frame[i+4]<800) && (radio_frame[i+5]>1300 && radio_frame[i+5]<1700) && (radio_frame[i+6]>1300 && radio_frame[i+6]<1700) && (radio_frame[i+7]>1300 && radio_frame[i+7]<1700))
+          if((radio_frame[i]>1300 && radio_frame[i]<1700) && (radio_frame[i+1]>400 && radio_frame[i+1]<1300) && (radio_frame[i+2]>1300 && radio_frame[i+2]<1700) && (radio_frame[i+3]>1300 && radio_frame[i+3]<1700) && (radio_frame[i+4]>400 && radio_frame[i+4]<1300) && (radio_frame[i+5]>1300 && radio_frame[i+5]<1700) && (radio_frame[i+6]>1300 && radio_frame[i+6]<1700) && (radio_frame[i+7]>1300 && radio_frame[i+7]<1700))
           { 
             ID_flag = true;
             startFrame = i;
+          }
+          if(ID_flag)
+          {
+            break;
           }
           
             
@@ -322,6 +327,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
   
   
   //Unlock function
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
    HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_2);
 
   //return;
@@ -336,9 +342,9 @@ void frame_decoder(uint32_t radio_frame[], uint8_t startFrame)
   
   
   //printf("It's inside!!!!! ?? 8===(-)\n");
-  for(int i=0;i<39;i++)
+  for(int i=0;i<40;i++)
   {
-    if(radio_frame[i+startFrame]>=400 && radio_frame[i+startFrame] <=800)
+    if(radio_frame[i+startFrame]>=400 && radio_frame[i+startFrame] <=1300)
     {
       decoded_frame[i]=1;
     }
@@ -346,7 +352,7 @@ void frame_decoder(uint32_t radio_frame[], uint8_t startFrame)
     {
       decoded_frame[i]=0;
     }
-   printf("Index%d = %d \n ",i,decoded_frame[i]);
+  // printf("Index%d = %d \n ",i,decoded_frame[i]);
   }
   
   
@@ -392,7 +398,7 @@ void frame_decoder(uint32_t radio_frame[], uint8_t startFrame)
   }
   static int hej;
   hej = temp;
-  printf("Temp: %d \n " ,temp);
+  printf("CRC: %d \n " ,HAL_CRC_Calculate(&hcrc,decoded_frame, 40));
   if(HAL_CRC_Calculate(&hcrc,decoded_frame, 40) == 0)
     displayFunction(temp, true);
     
