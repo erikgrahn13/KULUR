@@ -50,7 +50,12 @@
 /* USER CODE END Includes */
 
 /* Private define ------------------------------------------------------------*/
-
+#define BUFFERSIZE 6
+#define WELCOMEBUFFER 66
+#define DATEBUFFER 10
+#define TIMEBUFFER 5
+#define FRAME_SIZE 40
+#define MINIMUM_DUTY_TICKS 500
 #define DRDY_Pin GPIO_PIN_2
 #define DRDY_GPIO_Port GPIOE
 #define CS_I2C_SPI_Pin GPIO_PIN_3

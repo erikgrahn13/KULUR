@@ -48,7 +48,7 @@
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
-
+RTC_HandleTypeDef hrtc;
 
 
 /* RTC init function */
@@ -103,6 +103,42 @@ void HAL_RTC_MspDeInit(RTC_HandleTypeDef* rtcHandle)
   /* USER CODE END RTC_MspDeInit 1 */
 } 
 
+void RTC_TimeConfig(uint16_t Date[], uint16_t time[])
+{
+  //printf("minutes1 = %d\n", time[1]); 
+  RTC_TimeTypeDef stimestructure;
+  RTC_DateTypeDef sdatestructure;
+  
+  sdatestructure.Year = Date[0];
+  sdatestructure.Month = Date[1];
+  sdatestructure.Date = Date[2];
+  sdatestructure.WeekDay = RTC_WEEKDAY_TUESDAY;
+  
+  stimestructure.Hours = time[0];
+  //printf("minutes2 = %d\n", time[1]); 
+  stimestructure.Minutes = time[1];
+  stimestructure.Seconds = 0x00;
+  
+ HAL_RTC_SetDate(&hrtc,&sdatestructure,RTC_FORMAT_BCD);
+  HAL_RTC_SetTime(&hrtc, &stimestructure, RTC_FORMAT_BIN);
+  HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x32F2);
+}
+
+void RTC_TimeShow(uint16_t *hours, uint16_t *minutes, uint16_t *seconds)
+{
+  RTC_TimeTypeDef stimestructureget;
+  RTC_DateTypeDef sdatestructureget;
+  HAL_RTC_GetTime(&hrtc, &stimestructureget, RTC_FORMAT_BIN);
+  HAL_RTC_GetDate(&hrtc, &sdatestructureget, RTC_FORMAT_BCD);
+  
+  *hours = stimestructureget.Hours;
+  *minutes = stimestructureget.Minutes;
+  *seconds = stimestructureget.Seconds;
+  //displayFunction(stimestructureget.Seconds);
+  //printf("Time = %d:%d:%d\n", stimestructureget.Hours, stimestructureget.Minutes, stimestructureget.Seconds);
+  //printf("Date = %d-%d-%d\n", sdatestructureget.Year, sdatestructureget.Month, sdatestructureget.Date);
+         
+}
 /* USER CODE BEGIN 1 */
 
   

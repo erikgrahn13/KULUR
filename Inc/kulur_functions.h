@@ -1,0 +1,1 @@
+void displayFunction(int, bool);

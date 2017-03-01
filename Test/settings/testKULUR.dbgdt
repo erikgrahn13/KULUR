@@ -74,7 +74,7 @@
         
         
       <InputSource>1</InputSource><InputMode>10</InputMode><Filename>$PROJ_DIR$\TermIOInput.txt</Filename><InputEcho>1</InputEcho><ShowReset>0</ShowReset></TerminalIO>
-    <StaticWatch><expressions><item>radio_frame</item><item>decoded_frame</item><item>preamble_bits</item><item>bit_counter</item><item>Buffer</item><item>UartReady</item><item>testBuff</item><item>seconds</item><item>hej</item><item></item></expressions><col-names><item>Expression</item><item>Location</item><item>Type</item><item>Value</item></col-names><col-widths><item>189</item><item>150</item><item>100</item><item>237</item></col-widths></StaticWatch></Static>
+    <StaticWatch><expressions><item>radio_frame</item><item>decoded_frame</item><item>preamble_bits</item><item>bit_counter</item><item>Buffer</item><item>UartReady</item><item>testBuff</item><item>seconds</item><item>hej</item><item/></expressions><col-names><item>Expression</item><item>Location</item><item>Type</item><item>Value</item></col-names><col-widths><item>189</item><item>150</item><item>100</item><item>237</item></col-widths></StaticWatch></Static>
     <Windows>
       
       

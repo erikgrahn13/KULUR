@@ -43,15 +43,26 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
-#include "usart.h"
 #include "main.h"
+#include "stm32f3xx_hal.h"
+#include "cmsis_os.h"
+#include "rtc.h"
+#include "tim.h"
+#include "usart.h"
 #include "gpio.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include "stm32f3_discovery.h"
+#include "crc.h"
 
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart3;
+ITStatus UartReady;
 
 /* USART3 init function */
 
@@ -128,6 +139,199 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
 
   /* USER CODE END USART3_MspDeInit 1 */
 } 
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+   //Set transmission flag: transfer complete 
+  UartReady = SET;
+}
+
+/** @brief Rx Transfer completed callback
+* @param UartHandle: UART handle.
+* @note This example shows a simple way to report end of IT Rx transfer,
+*       and you can add your own implementation.
+* @retval None
+*/
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+  // Set transmission flag: transfer complete 
+  UartReady = SET;
+}
+
+void UARTputty(uint16_t temp)
+{
+   uint8_t newLine[] = "\r\n";
+   uint8_t tiotal = (temp / 100) +48;
+   uint8_t ental = ((temp % 100) / 10)+48;
+   uint8_t decimaltal   = ((temp % 100) % 10)+48; 
+  
+    uint8_t tempbuffer[] = {tiotal, ental, ',', decimaltal};
+    if(HAL_UART_Transmit(&huart3, (uint8_t *)newLine, 3, 5000) != HAL_OK)
+    {
+      Error_Handler();
+    } 
+  
+    if(HAL_UART_Transmit(&huart3, (uint8_t *)tempbuffer, 6, 5000) != HAL_OK)
+    {
+      Error_Handler();
+    } 
+  memset(tempbuffer, 0, sizeof(tempbuffer)); 
+  
+}
+
+
+void UARTfunction()
+{
+  
+  UartReady = RESET;
+   static uint8_t Buffer[] = "Welcome to KULUR, please set date (YYYY-MM-DD) and time (HH:MM)\r\n";
+  uint8_t DateString[] = "Date: ";
+
+  
+  
+  
+    if(HAL_UART_Transmit(&huart3, (uint8_t *)Buffer, WELCOMEBUFFER, 5000) != HAL_OK)
+    {
+      Error_Handler();
+    } 
+  
+    
+    memset(Buffer, 0, sizeof(Buffer)); 
+    
+    if(HAL_UART_Transmit(&huart3, (uint8_t *)DateString, BUFFERSIZE,5000) != HAL_OK)
+    {
+      Error_Handler();
+    }
+  
+  
+
+  static bool dateCheck = false;
+  static bool timeCheck = false;
+  uint8_t TimeString[] = "\r\nTime: ";
+  //static uint8_t testBuff[DATEBUFFER];
+
+  static uint16_t Date[3] = {0};
+  static uint16_t time[2] = {0};
+  
+  if(!dateCheck)
+  {
+   
+
+    
+    if(HAL_UART_Receive_IT(&huart3, (uint8_t *)Buffer, DATEBUFFER) != HAL_OK)  
+      {
+        Error_Handler();
+      }
+      
+      while(UartReady != SET)
+      {
+       
+      }
+
+      
+      UartReady = RESET;
+    
+              if(HAL_UART_Transmit_IT(&huart3, (uint8_t *)Buffer, DATEBUFFER) != HAL_OK)
+      {
+        Error_Handler();
+      } 
+      while(UartReady != SET)
+      {
+        
+      }
+      UartReady = RESET;
+      
+
+      
+      const char s[2] = "-";
+     char *token;
+     
+     /* get the first token */
+     token = strtok(Buffer, s);
+     int i = 0;
+     /* walk through other tokens */
+     while( token != NULL ) 
+     {
+        Date[i] = atoi(token);
+        //printf("%d\n", Date[i]);
+        token = strtok(NULL, s);
+        
+        i=i+1;
+     }
+     
+     Date[0] = Date[0] % 100;
+           
+     dateCheck = true;
+    
+  }
+      
+    if(!timeCheck)
+  {
+    
+    memset(Buffer, 0, sizeof(Buffer)); 
+    
+    if(HAL_UART_Transmit_IT(&huart3, (uint8_t *)TimeString, BUFFERSIZE+2) != HAL_OK)
+    {
+      Error_Handler();
+    } 
+    while(UartReady != SET)
+    {
+      
+    }
+    UartReady = RESET;
+    
+    
+    if(HAL_UART_Receive_IT(&huart3, (uint8_t *)Buffer, TIMEBUFFER) != HAL_OK)  
+      {
+        Error_Handler();
+      }
+      
+      while(UartReady != SET)
+      {
+       
+      }
+
+      
+      UartReady = RESET;
+      
+         if(HAL_UART_Transmit_IT(&huart3, (uint8_t *)Buffer, TIMEBUFFER) != HAL_OK)
+      {
+        Error_Handler();
+      } 
+      while(UartReady != SET)
+      {
+        
+      }
+      UartReady = RESET;
+      
+      const char s[2] = ":";
+     char *token;
+     
+      //get the first token 
+     token = strtok(Buffer, s);
+     int i = 0;
+     // walk through other tokens 
+     while( token != NULL ) 
+     {
+        time[i] = atoi(token);
+        //printf("%d\n", time[i]);
+        token = strtok(NULL, s);
+        
+        i=i+1;
+     }
+     
+     
+    //time[1] = time[1]/100;
+    
+    timeCheck = true;
+  }
+  //printf("tid = %d%d\n", time[0], time[1]);
+  RTC_TimeConfig(Date, time);
+   
+}
+
+
+
 
 
 

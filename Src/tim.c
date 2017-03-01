@@ -47,6 +47,7 @@
 
 #include "gpio.h"
 #include "stm32f3_discovery.h"
+#include <stdbool.h>
 
 /* USER CODE BEGIN 0 */
 
@@ -181,31 +182,112 @@ void HAL_TIM_Base_MspDeInit(TIM_HandleTypeDef* tim_baseHandle)
   /* USER CODE END TIM1_MspDeInit 1 */
 } 
 
-/*void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-  // Handle IRQ from channel 1 
-  if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
+  static uint32_t duty_in_microseconds=0;
+  static uint32_t radio_frame[200];
+  static uint32_t preamble_bits[4];
+  static uint8_t bit_counter=0;
+  static uint8_t interrupt_counter=0;
+  static bool preamble_flag=false;
+  bool ID_flag = false;
+  uint8_t startFrame = 0;
+  
+  
+  //Lock function
+  HAL_TIM_IC_Stop_IT(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_IC_Stop_IT(&htim1, TIM_CHANNEL_2);
+  
+ if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2)
   {
-    static uint32_t period_in_ticks;
-    static uint32_t period_in_microseconds;
-    static uint32_t current_timer_value;
-    static uint32_t previous_timer_value = 0;
-    uint32_t was_noise_status = 0;
+    duty_in_microseconds=HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+    
+   
+  
+  //Checks for preamble bits and sets a flag when 9 "1" in a row
+ 
+    if(duty_in_microseconds>400 && !preamble_flag)
+    {
+       if(duty_in_microseconds >= 400 && duty_in_microseconds <1300)
+       {
+         preamble_bits[bit_counter]=duty_in_microseconds;
+         bit_counter++;
+       }
+       else
+         bit_counter=0;
+       
+       if(bit_counter==4)
+       {
+         preamble_flag=true;
+       }
+      
+    } 
     
     
-    // Lock function 
-    HAL_TIM_IC_Stop_IT(&htim1, TIM_CHANNEL_2);
+    if(preamble_flag)
+    {
+      
     
-    // Get saved hardware counter value 
-    current_timer_value = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_2);
+      if(bit_counter >3 && bit_counter <200)
+      {
+         if((duty_in_microseconds >= 400 && duty_in_microseconds <1300) || (duty_in_microseconds > 1300 && duty_in_microseconds < 1700))
+         {
+        
+            radio_frame[bit_counter-4]=duty_in_microseconds;
+            bit_counter++;
+            //interrupt_counter++;
+         }
+        
+ 
+        
+        //printf("INNE FOR %d \n",interrupt_counter); 
+        
+      }
+      else if(bit_counter == 200)
+      {
+        for(int i = 0; i < 193; i++)
+        {
+          
+          if((radio_frame[i]>1300 && radio_frame[i]<1700) && (radio_frame[i+1]>400 && radio_frame[i+1]<1300) && (radio_frame[i+2]>1300 && radio_frame[i+2]<1700) && (radio_frame[i+3]>1300 && radio_frame[i+3]<1700) && (radio_frame[i+4]>400 && radio_frame[i+4]<1300) && (radio_frame[i+5]>1300 && radio_frame[i+5]<1700) && (radio_frame[i+6]>1300 && radio_frame[i+6]<1700) && (radio_frame[i+7]>1300 && radio_frame[i+7]<1700))
+          { 
+            ID_flag = true;
+            startFrame = i;
+          }
+          if(ID_flag)
+          {
+            break;
+          }
+          
+            
+        }
+         
+        if(ID_flag)
+        {
+          frame_decoder(radio_frame, startFrame);
+          //bit_counter=0;
+         
+        }
+        bit_counter = 0;
+        preamble_flag=false;
+        ID_flag = false;
+      }
+      else 
+        bit_counter++;
+      
+    }
     
+  
+      
+    
+    
+  }
+  
+  
+  //Unlock function
+  HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
+   HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_2);
 
-    
-    // Unlock and Return 
-    HAL_TIM_IC_Start_IC(&htim1, TIM_CHANNEL_2);
-    return;
+  //return;
 }
-}*/
 
 /* USER CODE BEGIN 1 */
 
