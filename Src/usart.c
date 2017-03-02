@@ -179,7 +179,7 @@ void UARTputty(uint16_t temp)
   
 }
 
-
+// Takes time and date as input through UART communication and stores the time
 void UARTfunction()
 {
   
@@ -208,7 +208,6 @@ void UARTfunction()
   static bool dateCheck = false;
   static bool timeCheck = false;
   uint8_t TimeString[] = "\r\nTime: ";
-  //static uint8_t testBuff[DATEBUFFER];
 
   static uint16_t Date[3] = {0};
   static uint16_t time[2] = {0};
@@ -314,18 +313,14 @@ void UARTfunction()
      while( token != NULL ) 
      {
         time[i] = atoi(token);
-        //printf("%d\n", time[i]);
         token = strtok(NULL, s);
         
         i=i+1;
      }
-     
-     
-    //time[1] = time[1]/100;
-    
+  
     timeCheck = true;
   }
-  //printf("tid = %d%d\n", time[0], time[1]);
+ 
   RTC_TimeConfig(Date, time);
    
 }
